@@ -34,6 +34,7 @@ Python으로 만드는 ETF 적립 매수 보조 시스템입니다.
 | 매수 점수 | 구현 |
 | 매수 제안 | 구현 |
 | 승인/거절 기록 | 구현 |
+| 시뮬레이션 계좌 원장 | 구현 |
 | 텔레그램 버튼 UI | 구현 |
 | SQLite 저장 | 구현 |
 | 토스 Open API 연결 | 대기 |
@@ -48,7 +49,7 @@ Python으로 만드는 ETF 적립 매수 보조 시스템입니다.
 5. 전술 자금 중 사용할 비율과 예상 수량을 제안합니다.
 6. 제안은 `pending` 상태로 저장됩니다.
 7. 사용자가 승인하거나 거절합니다.
-8. 현재 버전은 승인 기록까지만 남기고 주문은 보내지 않습니다.
+8. `ACCOUNT_PROVIDER=simulation`이면 SQLite 시뮬레이션 계좌에 가짜 매수 체결을 기록합니다.
 
 ## 브로커 구조
 
@@ -99,6 +100,7 @@ py -3.9 -m app.main pending
 ```powershell
 py -3.9 -m app.main approve 1
 py -3.9 -m app.main reject 1
+py -3.9 -m app.main portfolio
 ```
 
 일부 Windows 환경에서 `python` 명령이 Anaconda를 가리키며 SQLite DLL 오류가 날 수 있습니다. 이 경우 위 예시처럼 `py -3.9`를 사용합니다.
@@ -126,8 +128,9 @@ py -3.9 -m app.main telegram
 - 승인
 - 거절
 - 시스템 상태
+- 시뮬 계좌
 
-현재 텔레그램 승인은 주문을 보내지 않고 승인 기록만 저장합니다.
+현재 텔레그램 승인은 `ACCOUNT_PROVIDER=simulation`일 때 SQLite 시뮬레이션 계좌에 가짜 매수 체결을 기록합니다. 실전 주문은 보내지 않습니다.
 
 ## 설정
 

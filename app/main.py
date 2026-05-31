@@ -17,6 +17,7 @@ def main() -> None:
     subparsers.add_parser("init", help="저장소를 초기화합니다.")
     subparsers.add_parser("report", help="일일 리포트와 승인 대기 제안을 생성합니다.")
     subparsers.add_parser("pending", help="승인 대기 중인 제안을 보여줍니다.")
+    subparsers.add_parser("portfolio", help="시뮬레이션 계좌 현황을 보여줍니다.")
     subparsers.add_parser("telegram", help="텔레그램 버튼 UI 봇을 실행합니다.")
     approve_parser = subparsers.add_parser("approve", help="제안을 승인합니다.")
     approve_parser.add_argument("proposal_id", type=int)
@@ -50,6 +51,24 @@ def main() -> None:
             print(
                 f"{proposal.id}. {proposal.name} {proposal.proposed_quantity:,}주 "
                 f"({proposal.proposed_amount:,}원), {proposal.label}, {proposal.score}점"
+            )
+        return
+
+    if args.command == "portfolio":
+        account = storage.ensure_simulation_account(settings.simulation_initial_cash)
+        positions = storage.list_simulation_positions()
+        print("[시뮬레이션 계좌]")
+        print(f"초기 현금: {account.initial_cash:,}원")
+        print(f"현재 현금: {account.cash:,}원")
+        if not positions:
+            print("보유 종목이 없습니다.")
+            return
+        print("")
+        for position in positions:
+            print(
+                f"{position.name} ({position.symbol}) "
+                f"{position.quantity:,}주 / 평균단가 {position.avg_price:,.0f}원 / "
+                f"투자원금 {position.invested_amount:,}원"
             )
         return
 

@@ -42,3 +42,35 @@ class Proposal:
     proposed_quantity: int
     score: int
     label: str
+
+
+@dataclass(frozen=True)
+class SimulationAccount:
+    cash: int
+    initial_cash: int
+    updated_at: datetime
+
+
+@dataclass(frozen=True)
+class SimulationPosition:
+    symbol: str
+    name: str
+    quantity: int
+    avg_price: float
+    invested_amount: int
+    updated_at: datetime
+
+
+@dataclass(frozen=True)
+class SimulationTrade:
+    id: int
+    proposal_id: int | None
+    side: str
+    symbol: str
+    name: str
+    trade_date: date
+    price: int
+    quantity: int
+    amount: int
+    fee: int
+    created_at: datetime

@@ -57,6 +57,8 @@ class TelegramBot:
             self.send_pending(chat_id)
         elif text == "/status":
             self.send_status(chat_id)
+        elif text == "/portfolio":
+            self.send_portfolio(chat_id)
         else:
             self.telegram.send_message(chat_id, "메뉴에서 원하는 작업을 선택해 주세요.", main_menu_keyboard())
 
@@ -79,6 +81,8 @@ class TelegramBot:
             self.send_pending(chat_id)
         elif data == "status":
             self.send_status(chat_id)
+        elif data == "portfolio":
+            self.send_portfolio(chat_id)
         elif data.startswith("approve:"):
             proposal_id = int(data.split(":", 1)[1])
             result = approve_proposal(self.storage, self.broker, self.settings, proposal_id)
@@ -120,6 +124,16 @@ class TelegramBot:
 
     def send_status(self, chat_id: int) -> None:
         pending_count = len(self.storage.list_pending_proposals())
+        simulation_text = ""
+        if self.settings.uses_simulation_account:
+            account = self.storage.ensure_simulation_account(self.settings.simulation_initial_cash)
+            positions = self.storage.list_simulation_positions()
+            invested = sum(position.invested_amount for position in positions)
+            simulation_text = (
+                f"시뮬레이션 현금: {account.cash:,}원\n"
+                f"시뮬레이션 투자원금: {invested:,}원\n"
+                f"시뮬레이션 보유종목: {len(positions)}개\n"
+            )
         text = (
             "[시스템 상태]\n\n"
             f"시세 제공자: {self.settings.market_data_provider}\n"
@@ -128,12 +142,37 @@ class TelegramBot:
             f"기본 적립금: {self.settings.base_budget:,}원\n"
             f"전술 자금: {self.settings.tactical_budget:,}원\n"
             f"시뮬레이션 초기 현금: {self.settings.simulation_initial_cash:,}원\n"
+            f"{simulation_text}"
             f"승인 대기: {pending_count}건\n"
             f"가격 재승인 기준: {self.settings.approval_max_price_drift_pct:.2f}%\n"
             f"일일 주문 상한: {self.settings.daily_max_order_amount:,}원\n\n"
             "현재 버전은 주문을 전송하지 않고 승인 기록만 저장합니다."
         )
         self.telegram.send_message(chat_id, text, main_menu_keyboard())
+
+    def send_portfolio(self, chat_id: int) -> None:
+        account = self.storage.ensure_simulation_account(self.settings.simulation_initial_cash)
+        positions = self.storage.list_simulation_positions()
+        lines = [
+            "[시뮬레이션 계좌]",
+            "",
+            f"초기 현금: {account.initial_cash:,}원",
+            f"현재 현금: {account.cash:,}원",
+        ]
+        if not positions:
+            lines.append("보유 종목이 없습니다.")
+        else:
+            lines.append("")
+            for position in positions:
+                lines.extend(
+                    [
+                        f"{position.name} ({position.symbol})",
+                        f"- 수량: {position.quantity:,}주",
+                        f"- 평균단가: {position.avg_price:,.0f}원",
+                        f"- 투자원금: {position.invested_amount:,}원",
+                    ]
+                )
+        self.telegram.send_message(chat_id, "\n".join(lines), main_menu_keyboard())
 
     def is_allowed(self, chat_id: int) -> bool:
         allowed = self.settings.telegram_allowed_chat_id
@@ -182,6 +221,9 @@ def main_menu_keyboard() -> dict[str, Any]:
             ],
             [
                 {"text": "시스템 상태", "callback_data": "status"},
+                {"text": "시뮬 계좌", "callback_data": "portfolio"},
+            ],
+            [
                 {"text": "메뉴 새로고침", "callback_data": "menu"},
             ],
         ]

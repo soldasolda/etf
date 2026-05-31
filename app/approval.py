@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.brokers.base import BrokerClient
 from app.config import Settings
+from app.simulation import execute_simulated_buy
 from app.storage import Storage
 
 
@@ -25,13 +26,24 @@ def approve_proposal(storage: Storage, client: BrokerClient, settings: Settings,
         storage.decide_proposal(proposal_id, "blocked", note)
         return f"일일 주문 상한을 초과해 차단했습니다. 제안 금액: {proposal.proposed_amount:,}원"
 
-    note = f"승인됨. 현재 버전은 주문 전송 없이 승인 기록만 저장합니다. 재조회 가격 {current_price:,}원"
+    if settings.uses_simulation_account:
+        try:
+            simulation_result = execute_simulated_buy(storage, proposal, current_price, settings.simulation_initial_cash)
+        except RuntimeError as exc:
+            note = f"시뮬레이션 매수 실패: {exc}"
+            storage.decide_proposal(proposal_id, "blocked", note)
+            return f"시뮬레이션 매수에 실패했습니다.\n{exc}"
+        note = f"승인됨. 시뮬레이션 매수 체결. 재조회 가격 {current_price:,}원"
+        storage.decide_proposal(proposal_id, "approved", note)
+        return f"제안 {proposal_id}번을 승인했습니다.\n{simulation_result}"
+
+    note = f"승인됨. 현재 계좌 모드는 주문 전송 없이 승인 기록만 저장합니다. 재조회 가격 {current_price:,}원"
     storage.decide_proposal(proposal_id, "approved", note)
     return (
         f"제안 {proposal_id}번을 승인했습니다.\n"
         f"수량: {proposal.proposed_quantity:,}주\n"
         f"금액: {proposal.proposed_amount:,}원\n"
-        "현재 버전은 실전/모의 주문을 보내지 않고 승인 기록만 저장합니다."
+        "현재 계좌 모드는 실전 주문을 보내지 않고 승인 기록만 저장합니다."
     )
 
 

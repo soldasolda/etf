@@ -4,7 +4,7 @@ import sqlite3
 from datetime import date, datetime
 from pathlib import Path
 
-from app.models import DailyPrice, Proposal, Signal
+from app.models import DailyPrice, Proposal, Signal, SimulationAccount, SimulationPosition
 
 
 class Storage:
@@ -67,6 +67,36 @@ class Storage:
                 create table if not exists telegram_authorized_chats (
                     chat_id integer primary key,
                     authorized_at text not null
+                );
+
+                create table if not exists simulation_account (
+                    id integer primary key check (id = 1),
+                    cash integer not null,
+                    initial_cash integer not null,
+                    updated_at text not null
+                );
+
+                create table if not exists simulation_trades (
+                    id integer primary key autoincrement,
+                    proposal_id integer,
+                    side text not null,
+                    symbol text not null,
+                    name text not null,
+                    trade_date text not null,
+                    price integer not null,
+                    quantity integer not null,
+                    amount integer not null,
+                    fee integer not null,
+                    created_at text not null
+                );
+
+                create table if not exists simulation_positions (
+                    symbol text primary key,
+                    name text not null,
+                    quantity integer not null,
+                    avg_price real not null,
+                    invested_amount integer not null,
+                    updated_at text not null
                 );
                 """
             )
@@ -233,6 +263,108 @@ class Storage:
                 (chat_id, datetime.now().isoformat(timespec="seconds")),
             )
 
+    def ensure_simulation_account(self, initial_cash: int) -> SimulationAccount:
+        now = datetime.now().isoformat(timespec="seconds")
+        with self.connect() as conn:
+            row = conn.execute("select cash, initial_cash, updated_at from simulation_account where id = 1").fetchone()
+            if row is None:
+                conn.execute(
+                    """
+                    insert into simulation_account (id, cash, initial_cash, updated_at)
+                    values (1, ?, ?, ?)
+                    """,
+                    (initial_cash, initial_cash, now),
+                )
+                return SimulationAccount(cash=initial_cash, initial_cash=initial_cash, updated_at=datetime.fromisoformat(now))
+            return _simulation_account_from_row(row)
+
+    def get_simulation_account(self) -> SimulationAccount | None:
+        with self.connect() as conn:
+            row = conn.execute("select cash, initial_cash, updated_at from simulation_account where id = 1").fetchone()
+        return _simulation_account_from_row(row) if row else None
+
+    def buy_simulation_position(
+        self,
+        proposal_id: int | None,
+        symbol: str,
+        name: str,
+        price: int,
+        quantity: int,
+        fee: int,
+    ) -> tuple[SimulationAccount, SimulationPosition]:
+        amount = price * quantity
+        total_cost = amount + fee
+        trade_date = date.today().isoformat()
+        now = datetime.now().isoformat(timespec="seconds")
+        with self.connect() as conn:
+            account_row = conn.execute("select cash, initial_cash, updated_at from simulation_account where id = 1").fetchone()
+            if account_row is None:
+                raise RuntimeError("Simulation account is not initialized.")
+            if account_row["cash"] < total_cost:
+                raise RuntimeError(f"Simulation cash is not enough. cash={account_row['cash']}, required={total_cost}")
+
+            position_row = conn.execute(
+                "select symbol, name, quantity, avg_price, invested_amount, updated_at from simulation_positions where symbol = ?",
+                (symbol,),
+            ).fetchone()
+            if position_row is None:
+                new_quantity = quantity
+                new_invested = total_cost
+            else:
+                new_quantity = position_row["quantity"] + quantity
+                new_invested = position_row["invested_amount"] + total_cost
+            new_avg_price = new_invested / new_quantity if new_quantity else 0
+            new_cash = account_row["cash"] - total_cost
+
+            conn.execute(
+                """
+                insert into simulation_trades
+                    (proposal_id, side, symbol, name, trade_date, price, quantity, amount, fee, created_at)
+                values (?, 'BUY', ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (proposal_id, symbol, name, trade_date, price, quantity, amount, fee, now),
+            )
+            conn.execute(
+                """
+                insert into simulation_positions
+                    (symbol, name, quantity, avg_price, invested_amount, updated_at)
+                values (?, ?, ?, ?, ?, ?)
+                on conflict(symbol) do update set
+                    name=excluded.name,
+                    quantity=excluded.quantity,
+                    avg_price=excluded.avg_price,
+                    invested_amount=excluded.invested_amount,
+                    updated_at=excluded.updated_at
+                """,
+                (symbol, name, new_quantity, new_avg_price, new_invested, now),
+            )
+            conn.execute(
+                "update simulation_account set cash = ?, updated_at = ? where id = 1",
+                (new_cash, now),
+            )
+
+        account = SimulationAccount(cash=new_cash, initial_cash=account_row["initial_cash"], updated_at=datetime.fromisoformat(now))
+        position = SimulationPosition(
+            symbol=symbol,
+            name=name,
+            quantity=new_quantity,
+            avg_price=new_avg_price,
+            invested_amount=new_invested,
+            updated_at=datetime.fromisoformat(now),
+        )
+        return account, position
+
+    def list_simulation_positions(self) -> list[SimulationPosition]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                select symbol, name, quantity, avg_price, invested_amount, updated_at
+                from simulation_positions
+                order by symbol
+                """
+            ).fetchall()
+        return [_simulation_position_from_row(row) for row in rows]
+
 
 def _proposal_from_row(row: sqlite3.Row) -> Proposal:
     return Proposal(
@@ -246,4 +378,23 @@ def _proposal_from_row(row: sqlite3.Row) -> Proposal:
         proposed_quantity=row["proposed_quantity"],
         score=row["score"],
         label=row["label"],
+    )
+
+
+def _simulation_account_from_row(row: sqlite3.Row) -> SimulationAccount:
+    return SimulationAccount(
+        cash=row["cash"],
+        initial_cash=row["initial_cash"],
+        updated_at=datetime.fromisoformat(row["updated_at"]),
+    )
+
+
+def _simulation_position_from_row(row: sqlite3.Row) -> SimulationPosition:
+    return SimulationPosition(
+        symbol=row["symbol"],
+        name=row["name"],
+        quantity=row["quantity"],
+        avg_price=row["avg_price"],
+        invested_amount=row["invested_amount"],
+        updated_at=datetime.fromisoformat(row["updated_at"]),
     )
