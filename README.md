@@ -91,7 +91,7 @@ py -3.9 -m app.main reject 1
 텔레그램으로 운영하려면 BotFather에서 봇을 만들고 토큰을 `.env`에 넣습니다.
 
 ```env
-TELEGRAM_BOT_TOKEN=123456:your_bot_token
+TELEGRAM_BOT_TOKEN=<your_telegram_bot_token>
 TELEGRAM_ALLOWED_CHAT_ID=
 ```
 
@@ -133,6 +133,12 @@ DAILY_MAX_ORDER_AMOUNT=300000
 ```
 
 `.env`, SQLite 데이터베이스, 로그 파일은 Git에 포함하지 않습니다.
+
+커밋 전에는 비밀값 점검을 실행할 수 있습니다.
+
+```powershell
+py -3.9 scripts/check_secrets.py
+```
 
 ## 시장 라벨
 

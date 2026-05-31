@@ -40,8 +40,8 @@ BROKER=sample
 
 ```env
 BROKER=toss
-TOSS_APPKEY=...
-TOSS_SECRETKEY=...
+TOSS_APPKEY=<your_toss_app_key>
+TOSS_SECRETKEY=<your_toss_secret_key>
 ```
 
 ## 4. 현재 구현 범위
