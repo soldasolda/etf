@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SKIP_DIRS = {".git", "__pycache__", "data", "logs"}
-SKIP_FILES = {".env.example"}
+SKIP_FILES = {".env", ".env.example"}
 TEXT_EXTENSIONS = {
     ".md",
     ".py",
@@ -61,6 +61,8 @@ def iter_files(root: Path):
         if any(part in SKIP_DIRS for part in path.parts):
             continue
         if path.name in SKIP_FILES:
+            continue
+        if path.name.startswith(".env."):
             continue
         if path.name == ".gitignore" or path.suffix.lower() in TEXT_EXTENSIONS:
             yield path
