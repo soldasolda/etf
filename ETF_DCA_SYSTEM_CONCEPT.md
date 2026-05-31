@@ -20,7 +20,7 @@
 
 ## 3. 브로커 구조
 
-현재 코드는 브로커 연결부를 분리한다.
+현재 코드는 시세 제공자와 계좌 모드를 분리한다.
 
 ```text
 app/brokers/
@@ -34,7 +34,8 @@ app/brokers/
 토스 Open API 전까지 실제 시세 기반 시뮬레이션은 다음 설정으로 운영한다.
 
 ```env
-BROKER=fdr
+MARKET_DATA_PROVIDER=fdr
+ACCOUNT_PROVIDER=simulation
 ```
 
 토스 Open API 문서와 키를 받은 뒤에는 다음 구현을 추가한다.

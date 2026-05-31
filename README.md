@@ -21,7 +21,7 @@ Python으로 만드는 ETF 적립 매수 보조 시스템입니다.
 
 ## 현재 상태
 
-현재 구현된 것은 `sample` 또는 `fdr` 브로커 기반의 리포트/승인 시스템입니다. `fdr`은 FinanceDataReader를 사용해 실제 시장 데이터를 가져오는 시뮬레이션 모드입니다.
+현재 구현된 것은 FinanceDataReader 기반 시세 조회와 시뮬레이션 계좌 모드입니다. 시세 제공자와 계좌 제공자를 분리해, 토스 Open API가 준비되면 시세/계좌를 API 기반으로 교체할 수 있게 설계합니다.
 
 | 영역 | 상태 |
 | --- | --- |
@@ -52,7 +52,7 @@ Python으로 만드는 ETF 적립 매수 보조 시스템입니다.
 
 ## 브로커 구조
 
-증권사 연결부는 분리되어 있습니다.
+시세 제공자와 계좌 모드는 분리되어 있습니다.
 
 ```text
 app/brokers/
@@ -63,7 +63,13 @@ app/brokers/
   factory.py       BROKER 설정에 따라 클라이언트 선택
 ```
 
-API 없이 개발과 테스트만 할 때는 `BROKER=sample`을 사용합니다. 실제 시세 기반 리포트는 `BROKER=fdr`을 사용합니다. 토스증권 Open API 문서와 키가 준비되면 `BROKER=toss` 구현을 채워 연결할 예정입니다.
+API 없이 개발과 테스트만 할 때는 `MARKET_DATA_PROVIDER=sample`을 사용합니다. 실제 시세 기반 리포트는 `MARKET_DATA_PROVIDER=fdr`을 사용합니다. 토스증권 Open API 문서와 키가 준비되면 `MARKET_DATA_PROVIDER=toss`, `ACCOUNT_PROVIDER=api` 구현을 채워 연결할 예정입니다.
+
+| 시세 제공자 | 계좌 모드 | 의미 |
+| --- | --- | --- |
+| `sample` | `simulation` | 샘플 가격 + 가짜 계좌 |
+| `fdr` | `simulation` | FinanceDataReader 실제 시세 + 가짜 계좌 |
+| `toss` | `api` | 토스 Open API 시세/주문/잔고 |
 
 ## 빠른 실행
 
@@ -75,7 +81,7 @@ py -3.9 -m app.main init
 py -3.9 -m app.main report
 ```
 
-FinanceDataReader를 쓰는 `BROKER=fdr` 모드에서는 가상환경 Python으로 실행하는 편이 가장 깔끔합니다.
+FinanceDataReader를 쓰는 `MARKET_DATA_PROVIDER=fdr` 모드에서는 가상환경 Python으로 실행하는 편이 가장 깔끔합니다.
 
 ```powershell
 .\.venv\Scripts\python.exe -m app.main report
@@ -128,7 +134,8 @@ py -3.9 -m app.main telegram
 `.env.example`을 참고해 `.env`를 만들 수 있습니다.
 
 ```env
-BROKER=fdr
+MARKET_DATA_PROVIDER=fdr
+ACCOUNT_PROVIDER=simulation
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_ALLOWED_CHAT_ID=
 TELEGRAM_AUTH_KEY=
@@ -139,6 +146,7 @@ ETF_SYMBOL=360750
 ETF_NAME=TIGER 미국S&P500
 BASE_BUDGET=1000000
 TACTICAL_BUDGET=500000
+SIMULATION_INITIAL_CASH=5000000
 CYCLE_DAY=21
 HOLIDAY_POLICY=next_business_day
 APPROVAL_MAX_PRICE_DRIFT_PCT=0.3

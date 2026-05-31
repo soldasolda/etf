@@ -8,10 +8,11 @@ from app.config import Settings
 
 
 def create_broker_client(settings: Settings) -> BrokerClient:
-    if settings.broker == "sample":
+    provider = settings.market_data_provider
+    if provider == "sample":
         return SampleBrokerClient()
-    if settings.broker == "fdr":
+    if provider == "fdr":
         return FinanceDataReaderBrokerClient()
-    if settings.broker == "toss":
+    if provider == "toss":
         return TossBrokerClient(settings)
-    raise ValueError(f"Unsupported broker: {settings.broker}")
+    raise ValueError(f"Unsupported market data provider: {provider}")

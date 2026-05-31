@@ -122,10 +122,12 @@ class TelegramBot:
         pending_count = len(self.storage.list_pending_proposals())
         text = (
             "[시스템 상태]\n\n"
-            f"브로커: {self.settings.broker}\n"
+            f"시세 제공자: {self.settings.market_data_provider}\n"
+            f"계좌 모드: {self.settings.account_provider}\n"
             f"종목: {self.settings.etf_name} ({self.settings.etf_symbol})\n"
             f"기본 적립금: {self.settings.base_budget:,}원\n"
             f"전술 자금: {self.settings.tactical_budget:,}원\n"
+            f"시뮬레이션 초기 현금: {self.settings.simulation_initial_cash:,}원\n"
             f"승인 대기: {pending_count}건\n"
             f"가격 재승인 기준: {self.settings.approval_max_price_drift_pct:.2f}%\n"
             f"일일 주문 상한: {self.settings.daily_max_order_amount:,}원\n\n"
@@ -158,6 +160,7 @@ def home_text(settings: Settings) -> str:
         "[ETF DCA Assistant]\n\n"
         "버튼으로 일일 리포트와 승인 절차를 운영합니다.\n"
         f"현재 브로커는 {settings.broker}입니다.\n"
+        f"계좌 모드는 {settings.account_provider}입니다.\n"
         "실제 주문은 아직 전송하지 않습니다."
     )
 
