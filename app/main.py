@@ -1,0 +1,69 @@
+from __future__ import annotations
+
+import argparse
+
+from app.approval import approve_proposal, reject_proposal
+from app.brokers import create_broker_client
+from app.config import load_settings
+from app.reporting import render_daily_report
+from app.storage import Storage
+from app.strategy import evaluate_signal
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="ETF 적립 매수 보조 시스템")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers.add_parser("init", help="저장소를 초기화합니다.")
+    subparsers.add_parser("report", help="일일 리포트와 승인 대기 제안을 생성합니다.")
+    subparsers.add_parser("pending", help="승인 대기 중인 제안을 보여줍니다.")
+    approve_parser = subparsers.add_parser("approve", help="제안을 승인합니다.")
+    approve_parser.add_argument("proposal_id", type=int)
+    reject_parser = subparsers.add_parser("reject", help="제안을 거절합니다.")
+    reject_parser.add_argument("proposal_id", type=int)
+
+    args = parser.parse_args()
+    settings = load_settings()
+    storage = Storage(settings.db_path)
+    client = create_broker_client(settings)
+
+    if args.command == "init":
+        storage.init()
+        print(f"저장소를 준비했습니다: {settings.db_path}")
+        print(f"브로커 모드: {settings.broker}")
+        return
+
+    storage.init()
+
+    if args.command == "report":
+        prices = client.get_daily_prices(settings.etf_symbol)
+        storage.upsert_prices(settings.etf_symbol, prices)
+        stored_prices = storage.get_prices(settings.etf_symbol, limit=120)
+        signal = evaluate_signal(stored_prices, settings.tactical_budget)
+        storage.save_signal(settings.etf_symbol, signal)
+        proposal_id = storage.create_proposal(settings.etf_symbol, settings.etf_name, signal)
+        print(render_daily_report(settings, signal, proposal_id))
+        return
+
+    if args.command == "pending":
+        proposals = storage.list_pending_proposals()
+        if not proposals:
+            print("승인 대기 중인 제안이 없습니다.")
+            return
+        for proposal in proposals:
+            print(
+                f"{proposal.id}. {proposal.name} {proposal.proposed_quantity:,}주 "
+                f"({proposal.proposed_amount:,}원), {proposal.label}, {proposal.score}점"
+            )
+        return
+
+    if args.command == "approve":
+        print(approve_proposal(storage, client, settings, args.proposal_id))
+        return
+
+    if args.command == "reject":
+        print(reject_proposal(storage, args.proposal_id))
+        return
+
+
+if __name__ == "__main__":
+    main()

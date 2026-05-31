@@ -1,0 +1,68 @@
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+DATA_DIR = ROOT_DIR / "data"
+DB_PATH = DATA_DIR / "etf.sqlite3"
+
+
+def _load_dotenv(path: Path) -> None:
+    if not path.exists():
+        return
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+def _bool_env(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.lower() in {"1", "true", "yes", "y", "on"}
+
+
+@dataclass(frozen=True)
+class Settings:
+    broker: str
+    appkey: str
+    secretkey: str
+    mock: bool
+    etf_symbol: str
+    etf_name: str
+    base_budget: int
+    tactical_budget: int
+    cycle_day: int
+    holiday_policy: str
+    approval_max_price_drift_pct: float
+    daily_max_order_amount: int
+    db_path: Path
+
+    @property
+    def has_api_credentials(self) -> bool:
+        return bool(self.appkey and self.secretkey)
+
+
+def load_settings() -> Settings:
+    _load_dotenv(ROOT_DIR / ".env")
+    return Settings(
+        broker=os.getenv("BROKER", "sample").lower(),
+        appkey=os.getenv("TOSS_APPKEY", ""),
+        secretkey=os.getenv("TOSS_SECRETKEY", ""),
+        mock=_bool_env("TOSS_MOCK", True),
+        etf_symbol=os.getenv("ETF_SYMBOL", "360750"),
+        etf_name=os.getenv("ETF_NAME", "TIGER 미국S&P500"),
+        base_budget=int(os.getenv("BASE_BUDGET", "1000000")),
+        tactical_budget=int(os.getenv("TACTICAL_BUDGET", "500000")),
+        cycle_day=int(os.getenv("CYCLE_DAY", "21")),
+        holiday_policy=os.getenv("HOLIDAY_POLICY", "next_business_day"),
+        approval_max_price_drift_pct=float(os.getenv("APPROVAL_MAX_PRICE_DRIFT_PCT", "0.3")),
+        daily_max_order_amount=int(os.getenv("DAILY_MAX_ORDER_AMOUNT", "300000")),
+        db_path=DB_PATH,
+    )
