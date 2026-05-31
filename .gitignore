@@ -1,6 +1,8 @@
 .env
 .env.*
 !.env.example
+.ssh/
+local_keys/
 data/
 logs/
 *.sqlite3
