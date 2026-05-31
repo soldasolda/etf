@@ -19,8 +19,11 @@ def create_price_chart(
 
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
+        from matplotlib import font_manager
     except ImportError:
         return None
+
+    configure_korean_font(plt, font_manager)
 
     if not prices:
         return None
@@ -76,3 +79,21 @@ def rolling_average(values: list[int], window: int) -> list[float | None]:
         else:
             result.append(mean(values[index + 1 - window : index + 1]))
     return result
+
+
+def configure_korean_font(plt, font_manager) -> None:
+    candidates = [
+        "Malgun Gothic",
+        "맑은 고딕",
+        "AppleGothic",
+        "NanumGothic",
+        "Noto Sans CJK KR",
+        "Noto Sans KR",
+    ]
+    available = {font.name for font in font_manager.fontManager.ttflist}
+    for candidate in candidates:
+        if candidate in available:
+            plt.rcParams["font.family"] = candidate
+            plt.rcParams["axes.unicode_minus"] = False
+            return
+    plt.rcParams["axes.unicode_minus"] = False
