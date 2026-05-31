@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import time
 
 from app.approval import approve_proposal, reject_proposal
 from app.brokers import create_broker_client
 from app.config import load_settings
+from app.monitor import check_market_once
 from app.report_service import create_daily_report
 from app.reporting import render_daily_report
 from app.storage import Storage
@@ -18,6 +20,7 @@ def main() -> None:
     subparsers.add_parser("report", help="일일 리포트와 승인 대기 제안을 생성합니다.")
     subparsers.add_parser("pending", help="승인 대기 중인 제안을 보여줍니다.")
     subparsers.add_parser("portfolio", help="시뮬레이션 계좌 현황을 보여줍니다.")
+    subparsers.add_parser("monitor", help="조건 충족 시 매수 제안을 생성하는 감시 루프를 실행합니다.")
     subparsers.add_parser("telegram", help="텔레그램 버튼 UI 봇을 실행합니다.")
     approve_parser = subparsers.add_parser("approve", help="제안을 승인합니다.")
     approve_parser.add_argument("proposal_id", type=int)
@@ -89,6 +92,15 @@ def main() -> None:
     if args.command == "telegram":
         run_telegram_bot()
         return
+
+    if args.command == "monitor":
+        print("시장 감시를 시작합니다. 중지하려면 Ctrl+C를 누르세요.")
+        while True:
+            result = check_market_once(storage, client, settings)
+            print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - {result.reason}")
+            if result.proposal_id:
+                print(f"제안 생성: {result.proposal_id}")
+            time.sleep(settings.monitor_interval_seconds)
 
 
 if __name__ == "__main__":

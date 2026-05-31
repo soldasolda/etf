@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from app.approval import approve_proposal, reject_proposal
 from app.brokers import create_broker_client
 from app.config import Settings, load_settings
+from app.monitor import check_market_once
 from app.report_service import create_daily_report
 from app.reporting import render_daily_report
 from app.storage import Storage
@@ -28,6 +30,7 @@ class TelegramBot:
         self.broker = broker
         self.telegram = telegram
         self.offset: int | None = None
+        self.last_monitor_at = 0.0
 
     def run(self) -> None:
         print("Telegram bot is running. Press Ctrl+C to stop.")
@@ -36,6 +39,7 @@ class TelegramBot:
             for update in updates:
                 self.offset = int(update["update_id"]) + 1
                 self.handle_update(update)
+            self.maybe_run_monitor()
 
     def handle_update(self, update: dict[str, Any]) -> None:
         if "message" in update:
@@ -105,6 +109,31 @@ class TelegramBot:
         if result.chart_path:
             self.telegram.send_photo(chat_id, result.chart_path, "가격 흐름과 이동평균입니다.", keyboard)
 
+    def maybe_run_monitor(self) -> None:
+        if not self.settings.monitor_enabled:
+            return
+        now = time.monotonic()
+        if now - self.last_monitor_at < self.settings.monitor_interval_seconds:
+            return
+        self.last_monitor_at = now
+        result = check_market_once(self.storage, self.broker, self.settings)
+        if not result.should_notify:
+            print(f"monitor skipped: {result.reason}")
+            return
+        keyboard = proposal_keyboard(result.proposal_id)
+        text = render_daily_report(self.settings, result.signal, result.proposal_id)
+        alert_text = "[자동 매수 제안]\n\n" + text
+        for chat_id in self.notification_chat_ids():
+            self.telegram.send_message(chat_id, alert_text, keyboard)
+            if result.chart_path:
+                self.telegram.send_photo(chat_id, result.chart_path, "자동 감시 차트입니다.", keyboard)
+
+    def notification_chat_ids(self) -> list[int]:
+        chat_ids = set(self.storage.list_telegram_authorized_chat_ids())
+        if self.settings.telegram_allowed_chat_id is not None:
+            chat_ids.add(self.settings.telegram_allowed_chat_id)
+        return sorted(chat_ids)
+
     def send_pending(self, chat_id: int) -> None:
         proposals = self.storage.list_pending_proposals()
         if not proposals:
@@ -148,6 +177,10 @@ class TelegramBot:
             f"승인 대기: {pending_count}건\n"
             f"가격 재승인 기준: {self.settings.approval_max_price_drift_pct:.2f}%\n"
             f"일일 주문 상한: {self.settings.daily_max_order_amount:,}원\n\n"
+            f"자동 감시: {'켜짐' if self.settings.monitor_enabled else '꺼짐'}\n"
+            f"감시 주기: {self.settings.monitor_interval_seconds}초\n"
+            f"알림 기준 점수: {self.settings.monitor_min_score}점\n"
+            f"중복 제안 쿨다운: {self.settings.monitor_cooldown_minutes}분\n\n"
             "현재 버전은 주문을 전송하지 않고 승인 기록만 저장합니다."
         )
         self.telegram.send_message(chat_id, text, main_menu_keyboard())

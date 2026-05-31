@@ -49,6 +49,10 @@ class Settings:
     holiday_policy: str
     approval_max_price_drift_pct: float
     daily_max_order_amount: int
+    monitor_enabled: bool
+    monitor_interval_seconds: int
+    monitor_min_score: int
+    monitor_cooldown_minutes: int
     db_path: Path
     chart_dir: Path
 
@@ -86,6 +90,10 @@ def load_settings() -> Settings:
         holiday_policy=os.getenv("HOLIDAY_POLICY", "next_business_day"),
         approval_max_price_drift_pct=float(os.getenv("APPROVAL_MAX_PRICE_DRIFT_PCT", "0.3")),
         daily_max_order_amount=int(os.getenv("DAILY_MAX_ORDER_AMOUNT", "300000")),
+        monitor_enabled=_bool_env("MONITOR_ENABLED", True),
+        monitor_interval_seconds=int(os.getenv("MONITOR_INTERVAL_SECONDS", "900")),
+        monitor_min_score=int(os.getenv("MONITOR_MIN_SCORE", "60")),
+        monitor_cooldown_minutes=int(os.getenv("MONITOR_COOLDOWN_MINUTES", "180")),
         db_path=DB_PATH,
         chart_dir=CHART_DIR,
     )

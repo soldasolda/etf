@@ -206,6 +206,29 @@ class Storage:
             )
             return int(cursor.lastrowid)
 
+    def has_recent_active_proposal(self, symbol: str, cooldown_minutes: int) -> bool:
+        cutoff = datetime.now().timestamp() - cooldown_minutes * 60
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                select created_at
+                from proposals
+                where symbol = ?
+                  and status in ('pending', 'approved')
+                order by created_at desc
+                limit 20
+                """,
+                (symbol,),
+            ).fetchall()
+        for row in rows:
+            try:
+                created_at = datetime.fromisoformat(row["created_at"]).timestamp()
+            except ValueError:
+                continue
+            if created_at >= cutoff:
+                return True
+        return False
+
     def list_pending_proposals(self) -> list[Proposal]:
         with self.connect() as conn:
             rows = conn.execute(
@@ -262,6 +285,11 @@ class Storage:
                 """,
                 (chat_id, datetime.now().isoformat(timespec="seconds")),
             )
+
+    def list_telegram_authorized_chat_ids(self) -> list[int]:
+        with self.connect() as conn:
+            rows = conn.execute("select chat_id from telegram_authorized_chats order by authorized_at").fetchall()
+        return [int(row["chat_id"]) for row in rows]
 
     def ensure_simulation_account(self, initial_cash: int) -> SimulationAccount:
         now = datetime.now().isoformat(timespec="seconds")

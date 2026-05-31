@@ -92,6 +92,21 @@ FinanceDataReader를 쓰는 `MARKET_DATA_PROVIDER=fdr` 모드에서는 가상환
 
 차트 이미지는 `matplotlib`으로 생성됩니다. `requirements.txt` 설치 후 자동으로 활성화되며, 생성된 PNG는 `data/charts/` 아래에 저장됩니다.
 
+텔레그램 봇은 실행 중일 때 자동 감시도 수행합니다. 기본값은 15분마다 시장을 재평가하고, 점수가 기준 이상이면 승인 가능한 매수 제안을 먼저 보냅니다.
+
+```env
+MONITOR_ENABLED=true
+MONITOR_INTERVAL_SECONDS=900
+MONITOR_MIN_SCORE=60
+MONITOR_COOLDOWN_MINUTES=180
+```
+
+텔레그램 없이 CLI에서 감시 루프만 돌릴 수도 있습니다.
+
+```powershell
+.\.venv\Scripts\python.exe -m app.main monitor
+```
+
 승인 대기 중인 제안을 확인합니다.
 
 ```powershell
@@ -157,6 +172,10 @@ CYCLE_DAY=21
 HOLIDAY_POLICY=next_business_day
 APPROVAL_MAX_PRICE_DRIFT_PCT=0.3
 DAILY_MAX_ORDER_AMOUNT=300000
+MONITOR_ENABLED=true
+MONITOR_INTERVAL_SECONDS=900
+MONITOR_MIN_SCORE=60
+MONITOR_COOLDOWN_MINUTES=180
 ```
 
 `.env`, SQLite 데이터베이스, 로그 파일은 Git에 포함하지 않습니다.
