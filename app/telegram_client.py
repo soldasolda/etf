@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import mimetypes
 import urllib.request
+from pathlib import Path
 from typing import Any
 
 
@@ -59,6 +61,20 @@ class TelegramClient:
             payload["text"] = text
         self._post("answerCallbackQuery", payload)
 
+    def send_photo(
+        self,
+        chat_id: int,
+        photo_path: Path,
+        caption: str | None = None,
+        reply_markup: dict[str, Any] | None = None,
+    ) -> None:
+        fields: dict[str, Any] = {"chat_id": chat_id}
+        if caption:
+            fields["caption"] = caption
+        if reply_markup:
+            fields["reply_markup"] = json.dumps(reply_markup, ensure_ascii=False)
+        self._post_multipart("sendPhoto", fields, "photo", photo_path)
+
     def _post(self, method: str, payload: dict[str, Any]) -> dict[str, Any]:
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         request = urllib.request.Request(
@@ -72,3 +88,38 @@ class TelegramClient:
         if not body.get("ok"):
             raise RuntimeError(f"Telegram API error on {method}: {body}")
         return body
+
+    def _post_multipart(self, method: str, fields: dict[str, Any], file_field: str, file_path: Path) -> dict[str, Any]:
+        boundary = "----ETF-DCA-boundary"
+        body = bytearray()
+        for name, value in fields.items():
+            body.extend(f"--{boundary}\r\n".encode("utf-8"))
+            body.extend(f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode("utf-8"))
+            body.extend(str(value).encode("utf-8"))
+            body.extend(b"\r\n")
+
+        mime_type = mimetypes.guess_type(str(file_path))[0] or "application/octet-stream"
+        file_bytes = file_path.read_bytes()
+        body.extend(f"--{boundary}\r\n".encode("utf-8"))
+        body.extend(
+            (
+                f'Content-Disposition: form-data; name="{file_field}"; '
+                f'filename="{file_path.name}"\r\n'
+                f"Content-Type: {mime_type}\r\n\r\n"
+            ).encode("utf-8")
+        )
+        body.extend(file_bytes)
+        body.extend(b"\r\n")
+        body.extend(f"--{boundary}--\r\n".encode("utf-8"))
+
+        request = urllib.request.Request(
+            f"{self.base_url}/{method}",
+            data=bytes(body),
+            headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=45) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        if not result.get("ok"):
+            raise RuntimeError(f"Telegram API error on {method}: {result}")
+        return result

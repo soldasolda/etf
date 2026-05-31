@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT_DIR / "data"
 DB_PATH = DATA_DIR / "etf.sqlite3"
+CHART_DIR = DATA_DIR / "charts"
 
 
 def _load_dotenv(path: Path) -> None:
@@ -49,6 +50,7 @@ class Settings:
     approval_max_price_drift_pct: float
     daily_max_order_amount: int
     db_path: Path
+    chart_dir: Path
 
     @property
     def has_api_credentials(self) -> bool:
@@ -85,6 +87,7 @@ def load_settings() -> Settings:
         approval_max_price_drift_pct=float(os.getenv("APPROVAL_MAX_PRICE_DRIFT_PCT", "0.3")),
         daily_max_order_amount=int(os.getenv("DAILY_MAX_ORDER_AMOUNT", "300000")),
         db_path=DB_PATH,
+        chart_dir=CHART_DIR,
     )
 
 

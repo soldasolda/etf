@@ -102,6 +102,8 @@ class TelegramBot:
         text = render_daily_report(self.settings, result.signal, result.proposal_id)
         keyboard = proposal_keyboard(result.proposal_id) if result.proposal_id else main_menu_keyboard()
         self.telegram.send_message(chat_id, text, keyboard)
+        if result.chart_path:
+            self.telegram.send_photo(chat_id, result.chart_path, "가격 흐름과 이동평균입니다.", keyboard)
 
     def send_pending(self, chat_id: int) -> None:
         proposals = self.storage.list_pending_proposals()

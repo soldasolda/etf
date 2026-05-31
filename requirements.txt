@@ -1,1 +1,2 @@
 finance-datareader>=0.9.96
+matplotlib>=3.7

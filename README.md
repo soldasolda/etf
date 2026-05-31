@@ -28,6 +28,7 @@ Python으로 만드는 ETF 적립 매수 보조 시스템입니다.
 | 일일 리포트 | 구현 |
 | 샘플 일봉 데이터 | 구현 |
 | FinanceDataReader 시세 조회 | 구현 |
+| 가격/이동평균 차트 | 구현 |
 | 3개월 평균 계산 | 구현 |
 | 20일/60일 이동평균 | 구현 |
 | 시장 라벨 | 구현 |
@@ -89,6 +90,8 @@ FinanceDataReader를 쓰는 `MARKET_DATA_PROVIDER=fdr` 모드에서는 가상환
 .\.venv\Scripts\python.exe -m app.main telegram
 ```
 
+차트 이미지는 `matplotlib`으로 생성됩니다. `requirements.txt` 설치 후 자동으로 활성화되며, 생성된 PNG는 `data/charts/` 아래에 저장됩니다.
+
 승인 대기 중인 제안을 확인합니다.
 
 ```powershell
@@ -130,7 +133,7 @@ py -3.9 -m app.main telegram
 - 시스템 상태
 - 시뮬 계좌
 
-현재 텔레그램 승인은 `ACCOUNT_PROVIDER=simulation`일 때 SQLite 시뮬레이션 계좌에 가짜 매수 체결을 기록합니다. 실전 주문은 보내지 않습니다.
+일일 리포트에는 종가, 20일선, 60일선, 3개월 평균, 현재 위치가 포함된 차트 이미지가 함께 전송됩니다. 현재 텔레그램 승인은 `ACCOUNT_PROVIDER=simulation`일 때 SQLite 시뮬레이션 계좌에 가짜 매수 체결을 기록합니다. 실전 주문은 보내지 않습니다.
 
 ## 설정
 

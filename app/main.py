@@ -40,6 +40,12 @@ def main() -> None:
     if args.command == "report":
         result = create_daily_report(storage, client, settings)
         print(render_daily_report(settings, result.signal, result.proposal_id))
+        if result.chart_path:
+            print("")
+            print(f"차트: {result.chart_path}")
+        else:
+            print("")
+            print("차트: matplotlib이 설치되어 있지 않아 생성하지 못했습니다.")
         return
 
     if args.command == "pending":
