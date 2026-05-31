@@ -3,6 +3,7 @@
 !.env.example
 .ssh/
 local_keys/
+.venv/
 data/
 logs/
 *.sqlite3

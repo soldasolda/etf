@@ -14,6 +14,7 @@ TOSS_SECRETKEY=<your_toss_secret_key>
 ```
 
 `.env`, `.env.*`, SQLite 데이터베이스, 로그 파일은 `.gitignore`로 제외됩니다.
+가상환경 `.venv`와 로컬 SSH 키 폴더도 Git에 포함하지 않습니다.
 
 ## 커밋 전 점검
 

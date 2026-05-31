@@ -26,14 +26,15 @@
 app/brokers/
   base.py          공통 인터페이스
   sample_client.py API 없이 샘플 데이터 사용
+  fdr_client.py    FinanceDataReader 기반 시세 조회
   toss_client.py   토스 Open API 대기용 자리
   factory.py       BROKER 값으로 클라이언트 선택
 ```
 
-초기 설정은 다음과 같다.
+토스 Open API 전까지 실제 시세 기반 시뮬레이션은 다음 설정으로 운영한다.
 
 ```env
-BROKER=sample
+BROKER=fdr
 ```
 
 토스 Open API 문서와 키를 받은 뒤에는 다음 구현을 추가한다.

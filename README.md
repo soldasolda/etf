@@ -21,12 +21,13 @@ Python으로 만드는 ETF 적립 매수 보조 시스템입니다.
 
 ## 현재 상태
 
-현재 구현된 것은 `sample` 브로커 기반의 리포트/승인 시스템입니다.
+현재 구현된 것은 `sample` 또는 `fdr` 브로커 기반의 리포트/승인 시스템입니다. `fdr`은 FinanceDataReader를 사용해 실제 시장 데이터를 가져오는 시뮬레이션 모드입니다.
 
 | 영역 | 상태 |
 | --- | --- |
 | 일일 리포트 | 구현 |
 | 샘플 일봉 데이터 | 구현 |
+| FinanceDataReader 시세 조회 | 구현 |
 | 3개월 평균 계산 | 구현 |
 | 20일/60일 이동평균 | 구현 |
 | 시장 라벨 | 구현 |
@@ -57,18 +58,28 @@ Python으로 만드는 ETF 적립 매수 보조 시스템입니다.
 app/brokers/
   base.py          공통 인터페이스
   sample_client.py API 없이 샘플 데이터로 실행
+  fdr_client.py    FinanceDataReader 기반 시세 조회
   toss_client.py   토스 Open API 연결 예정
   factory.py       BROKER 설정에 따라 클라이언트 선택
 ```
 
-지금은 API 없이도 개발과 테스트가 가능하도록 `BROKER=sample`을 사용합니다. 토스증권 Open API 문서와 키가 준비되면 `BROKER=toss` 구현을 채워 연결할 예정입니다.
+API 없이 개발과 테스트만 할 때는 `BROKER=sample`을 사용합니다. 실제 시세 기반 리포트는 `BROKER=fdr`을 사용합니다. 토스증권 Open API 문서와 키가 준비되면 `BROKER=toss` 구현을 채워 연결할 예정입니다.
 
 ## 빠른 실행
 
 ```powershell
 cd C:\dev\etf
+py -3.9 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 py -3.9 -m app.main init
 py -3.9 -m app.main report
+```
+
+FinanceDataReader를 쓰는 `BROKER=fdr` 모드에서는 가상환경 Python으로 실행하는 편이 가장 깔끔합니다.
+
+```powershell
+.\.venv\Scripts\python.exe -m app.main report
+.\.venv\Scripts\python.exe -m app.main telegram
 ```
 
 승인 대기 중인 제안을 확인합니다.
@@ -116,7 +127,7 @@ py -3.9 -m app.main telegram
 `.env.example`을 참고해 `.env`를 만들 수 있습니다.
 
 ```env
-BROKER=sample
+BROKER=fdr
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_ALLOWED_CHAT_ID=
 TOSS_APPKEY=
