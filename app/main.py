@@ -5,9 +5,10 @@ import argparse
 from app.approval import approve_proposal, reject_proposal
 from app.brokers import create_broker_client
 from app.config import load_settings
+from app.report_service import create_daily_report
 from app.reporting import render_daily_report
 from app.storage import Storage
-from app.strategy import evaluate_signal
+from app.telegram_bot import run_telegram_bot
 
 
 def main() -> None:
@@ -16,6 +17,7 @@ def main() -> None:
     subparsers.add_parser("init", help="저장소를 초기화합니다.")
     subparsers.add_parser("report", help="일일 리포트와 승인 대기 제안을 생성합니다.")
     subparsers.add_parser("pending", help="승인 대기 중인 제안을 보여줍니다.")
+    subparsers.add_parser("telegram", help="텔레그램 버튼 UI 봇을 실행합니다.")
     approve_parser = subparsers.add_parser("approve", help="제안을 승인합니다.")
     approve_parser.add_argument("proposal_id", type=int)
     reject_parser = subparsers.add_parser("reject", help="제안을 거절합니다.")
@@ -35,13 +37,8 @@ def main() -> None:
     storage.init()
 
     if args.command == "report":
-        prices = client.get_daily_prices(settings.etf_symbol)
-        storage.upsert_prices(settings.etf_symbol, prices)
-        stored_prices = storage.get_prices(settings.etf_symbol, limit=120)
-        signal = evaluate_signal(stored_prices, settings.tactical_budget)
-        storage.save_signal(settings.etf_symbol, signal)
-        proposal_id = storage.create_proposal(settings.etf_symbol, settings.etf_name, signal)
-        print(render_daily_report(settings, signal, proposal_id))
+        result = create_daily_report(storage, client, settings)
+        print(render_daily_report(settings, result.signal, result.proposal_id))
         return
 
     if args.command == "pending":
@@ -62,6 +59,10 @@ def main() -> None:
 
     if args.command == "reject":
         print(reject_proposal(storage, args.proposal_id))
+        return
+
+    if args.command == "telegram":
+        run_telegram_bot()
         return
 
 

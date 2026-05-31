@@ -34,6 +34,8 @@ class Settings:
     appkey: str
     secretkey: str
     mock: bool
+    telegram_bot_token: str
+    telegram_allowed_chat_id: int | None
     etf_symbol: str
     etf_name: str
     base_budget: int
@@ -51,11 +53,14 @@ class Settings:
 
 def load_settings() -> Settings:
     _load_dotenv(ROOT_DIR / ".env")
+    allowed_chat_id = os.getenv("TELEGRAM_ALLOWED_CHAT_ID", "").strip()
     return Settings(
         broker=os.getenv("BROKER", "sample").lower(),
         appkey=os.getenv("TOSS_APPKEY", ""),
         secretkey=os.getenv("TOSS_SECRETKEY", ""),
         mock=_bool_env("TOSS_MOCK", True),
+        telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
+        telegram_allowed_chat_id=int(allowed_chat_id) if allowed_chat_id else None,
         etf_symbol=os.getenv("ETF_SYMBOL", "360750"),
         etf_name=os.getenv("ETF_NAME", "TIGER 미국S&P500"),
         base_budget=int(os.getenv("BASE_BUDGET", "1000000")),

@@ -33,6 +33,7 @@ Python으로 만드는 ETF 적립 매수 보조 시스템입니다.
 | 매수 점수 | 구현 |
 | 매수 제안 | 구현 |
 | 승인/거절 기록 | 구현 |
+| 텔레그램 버튼 UI | 구현 |
 | SQLite 저장 | 구현 |
 | 토스 Open API 연결 | 대기 |
 | 실제 주문 전송 | 미구현 |
@@ -85,12 +86,39 @@ py -3.9 -m app.main reject 1
 
 일부 Windows 환경에서 `python` 명령이 Anaconda를 가리키며 SQLite DLL 오류가 날 수 있습니다. 이 경우 위 예시처럼 `py -3.9`를 사용합니다.
 
+## 텔레그램 버튼 UI
+
+텔레그램으로 운영하려면 BotFather에서 봇을 만들고 토큰을 `.env`에 넣습니다.
+
+```env
+TELEGRAM_BOT_TOKEN=123456:your_bot_token
+TELEGRAM_ALLOWED_CHAT_ID=
+```
+
+처음에는 `TELEGRAM_ALLOWED_CHAT_ID`를 비워두고 봇을 실행한 뒤, 텔레그램에서 `/start`를 보내면 봇이 현재 `chat_id`를 알려줍니다. 그 값을 `.env`에 넣으면 해당 채팅방에서만 봇을 사용할 수 있습니다.
+
+```powershell
+py -3.9 -m app.main telegram
+```
+
+텔레그램 UI에서 사용할 수 있는 버튼은 다음과 같습니다.
+
+- 일일 리포트
+- 승인 대기
+- 승인
+- 거절
+- 시스템 상태
+
+현재 텔레그램 승인은 주문을 보내지 않고 승인 기록만 저장합니다.
+
 ## 설정
 
 `.env.example`을 참고해 `.env`를 만들 수 있습니다.
 
 ```env
 BROKER=sample
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_ALLOWED_CHAT_ID=
 TOSS_APPKEY=
 TOSS_SECRETKEY=
 TOSS_MOCK=true
