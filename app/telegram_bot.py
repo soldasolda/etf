@@ -110,7 +110,7 @@ class TelegramBot:
 
     def send_report(self, chat_id: int) -> None:
         result = create_daily_report(self.storage, self.broker, self.settings)
-        text = render_daily_report(self.settings, result.signal, result.proposal_id)
+        text = render_daily_report(self.settings, result.signal, result.proposal_id, result.recent_prices)
         keyboard = proposal_keyboard(result.proposal_id) if result.proposal_id else main_menu_keyboard()
         self.telegram.send_message(chat_id, text, keyboard)
         if result.chart_path:

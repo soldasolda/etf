@@ -42,7 +42,7 @@ def main() -> None:
 
     if args.command == "report":
         result = create_daily_report(storage, client, settings)
-        print(render_daily_report(settings, result.signal, result.proposal_id))
+        print(render_daily_report(settings, result.signal, result.proposal_id, result.recent_prices))
         if result.chart_path:
             print("")
             print(f"차트: {result.chart_path}")

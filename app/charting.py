@@ -29,20 +29,28 @@ def create_price_chart(
         return None
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    dates = [item.trade_date for item in prices]
-    closes = [item.close for item in prices]
-    ma20 = rolling_average(closes, 20)
-    ma60 = rolling_average(closes, 60)
+    full_dates = [item.trade_date for item in prices]
+    full_closes = [item.close for item in prices]
+    full_ma20 = rolling_average(full_closes, 20)
+    full_ma60 = rolling_average(full_closes, 60)
+
+    window = min(15, len(prices))
+    dates = full_dates[-window:]
+    closes = full_closes[-window:]
+    ma20 = full_ma20[-window:]
+    ma60 = full_ma60[-window:]
     avg_3m = [signal.avg_3m for _ in closes]
+    avg_3w = [signal.avg_3w for _ in closes]
 
     fig, ax = plt.subplots(figsize=(10, 5.5), dpi=140)
     ax.plot(dates, closes, color="#1f2937", linewidth=1.8, label="Close")
     ax.plot(dates, ma20, color="#2563eb", linewidth=1.2, label="MA20")
     ax.plot(dates, ma60, color="#f97316", linewidth=1.2, label="MA60")
     ax.plot(dates, avg_3m, color="#16a34a", linewidth=1.0, linestyle="--", label="3M Avg")
+    ax.plot(dates, avg_3w, color="#7c3aed", linewidth=1.0, linestyle=":", label="3W Avg")
     ax.scatter([dates[-1]], [closes[-1]], color="#dc2626", s=42, zorder=5, label="Current")
 
-    title = f"{name} ({symbol}) - {signal.label} / Score {signal.score}"
+    title = f"{name} ({symbol}) - 최근 3주 / {signal.label} / Score {signal.score}"
     ax.set_title(title, fontsize=12, pad=12)
     ax.set_ylabel("Price")
     ax.grid(True, alpha=0.22)

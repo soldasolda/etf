@@ -23,11 +23,15 @@ class Signal:
     expected_quantity: int
     current_price: int
     avg_3m: float
+    avg_3w: float
     ma20: float
     ma60: float
     discount_pct: float
+    three_week_position_pct: float
+    pullback_from_3w_high_pct: float
     five_day_return_pct: float
     reasons: list[str]
+    score_details: list[str]
 
 
 @dataclass(frozen=True)

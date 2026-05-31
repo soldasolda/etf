@@ -41,11 +41,15 @@ class Storage:
                     buy_ratio real not null,
                     current_price integer not null,
                     avg_3m real not null,
+                    avg_3w real not null default 0,
                     ma20 real not null,
                     ma60 real not null,
                     discount_pct real not null,
+                    three_week_position_pct real not null default 0,
+                    pullback_from_3w_high_pct real not null default 0,
                     five_day_return_pct real not null,
                     reasons text not null,
+                    score_details text not null default '',
                     created_at text not null
                 );
 
@@ -100,6 +104,10 @@ class Storage:
                 );
                 """
             )
+            self._ensure_column(conn, "signal_daily", "avg_3w", "real not null default 0")
+            self._ensure_column(conn, "signal_daily", "three_week_position_pct", "real not null default 0")
+            self._ensure_column(conn, "signal_daily", "pullback_from_3w_high_pct", "real not null default 0")
+            self._ensure_column(conn, "signal_daily", "score_details", "text not null default ''")
 
     def upsert_prices(self, symbol: str, prices: list[DailyPrice]) -> None:
         with self.connect() as conn:
@@ -160,9 +168,10 @@ class Storage:
                 """
                 insert into signal_daily
                     (symbol, signal_date, score, label, buy_ratio, current_price,
-                     avg_3m, ma20, ma60, discount_pct, five_day_return_pct,
-                     reasons, created_at)
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     avg_3m, avg_3w, ma20, ma60, discount_pct,
+                     three_week_position_pct, pullback_from_3w_high_pct,
+                     five_day_return_pct, reasons, score_details, created_at)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     symbol,
@@ -172,15 +181,24 @@ class Storage:
                     signal.buy_ratio,
                     signal.current_price,
                     signal.avg_3m,
+                    signal.avg_3w,
                     signal.ma20,
                     signal.ma60,
                     signal.discount_pct,
+                    signal.three_week_position_pct,
+                    signal.pullback_from_3w_high_pct,
                     signal.five_day_return_pct,
                     "\n".join(signal.reasons),
+                    "\n".join(signal.score_details),
                     datetime.now().isoformat(timespec="seconds"),
                 ),
             )
             return int(cursor.lastrowid)
+
+    def _ensure_column(self, conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
+        columns = {row["name"] for row in conn.execute(f"pragma table_info({table})").fetchall()}
+        if column not in columns:
+            conn.execute(f"alter table {table} add column {column} {definition}")
 
     def create_proposal(self, symbol: str, name: str, signal: Signal) -> int | None:
         if signal.expected_quantity <= 0 or signal.tactical_amount <= 0:

@@ -6,7 +6,7 @@ from pathlib import Path
 from app.brokers.base import BrokerClient
 from app.charting import create_price_chart
 from app.config import Settings
-from app.models import Signal
+from app.models import DailyPrice, Signal
 from app.storage import Storage
 from app.strategy import evaluate_signal
 
@@ -16,6 +16,7 @@ class DailyReportResult:
     signal: Signal
     proposal_id: int | None
     chart_path: Path | None
+    recent_prices: list[DailyPrice]
 
 
 def create_daily_report(storage: Storage, client: BrokerClient, settings: Settings) -> DailyReportResult:
@@ -32,4 +33,9 @@ def create_daily_report(storage: Storage, client: BrokerClient, settings: Settin
         settings.etf_name,
         settings.chart_dir,
     )
-    return DailyReportResult(signal=signal, proposal_id=proposal_id, chart_path=chart_path)
+    return DailyReportResult(
+        signal=signal,
+        proposal_id=proposal_id,
+        chart_path=chart_path,
+        recent_prices=stored_prices[-7:],
+    )
