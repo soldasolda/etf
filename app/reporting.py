@@ -1,15 +1,21 @@
 from __future__ import annotations
 
 from app.config import Settings
+from app.dca import MonthlyPlan, decide_tactical_buy
 from app.models import DailyPrice, Signal
 
 
 def render_daily_report(
     settings: Settings,
     signal: Signal,
-    proposal_id: int | None,
+    proposal_ids: list[int] | int | None,
     recent_prices: list[DailyPrice] | None = None,
+    monthly_plan: MonthlyPlan | None = None,
 ) -> str:
+    if isinstance(proposal_ids, int):
+        normalized_proposal_ids = [proposal_ids]
+    else:
+        normalized_proposal_ids = proposal_ids or []
     lines = [
         "[ETF 일일 리포트]",
         "",
@@ -28,18 +34,21 @@ def render_daily_report(
         f"60일선: {signal.ma60:,.0f}원",
         f"120일선: {signal.ma120:,.0f}원",
         f"최근 5거래일 수익률: {signal.five_day_return_pct:+.2f}%",
-        f"점수: {signal.score}점",
+        f"ETF 건강도: {signal.health_score}점 / {signal.health_label}",
+        f"전술 매수 매력도: {signal.tactical_score}점 / {signal.tactical_label}",
         "",
-        "[점수 사유]",
+        "[건강도 사유]",
     ]
-    lines.extend([f"- {detail}" for detail in signal.score_details])
+    lines.extend([f"- {detail}" for detail in signal.health_details])
+    lines.extend(["", "[전술 매력도 사유]"])
+    lines.extend([f"- {detail}" for detail in signal.tactical_details])
     lines.extend(
         [
             "",
             "[점수 의미]",
-            "- 점수는 매수 확률이 아니라 전술 자금을 써도 되는 정도입니다.",
-            "- 상승 추세가 살아 있어도 RSI/최근 범위 상단이면 추격 매수를 줄입니다.",
-            "- 저가처럼 보여도 120일선 아래에서는 하락 추세 위험을 별도로 반영합니다.",
+            "- ETF 건강도는 장기 적립을 계속할 만한 추세 품질입니다.",
+            "- 전술 매수 매력도는 지금 추가 자금을 더 넣기 좋은 가격인지 봅니다.",
+            "- 최종 제안 금액은 전술 매력도에 DCA 원칙, 월말 소진, 건강도를 함께 반영합니다.",
         ]
     )
     if recent_prices:
@@ -47,26 +56,53 @@ def render_daily_report(
         lines.extend(render_recent_price_table(recent_prices))
     lines.extend(["", "[오늘의 판단]"])
     lines.extend([f"- {reason}" for reason in signal.reasons])
+    if monthly_plan:
+        tactical_decision = decide_tactical_buy(signal, monthly_plan, settings.monitor_min_score)
+        lines.extend(
+            [
+                "",
+                "[월간 집행 계획]",
+                f"정기 매수일: 매월 {monthly_plan.settings.dca_day}일",
+                f"월 총액: {monthly_plan.settings.total_budget:,}원",
+                f"기본 DCA: {monthly_plan.settings.base_budget:,}원",
+                f"전술 자금: {monthly_plan.settings.tactical_budget:,}원",
+                f"이번 달 전술 집행: {monthly_plan.tactical_spent:,}원",
+                f"이번 달 전술 잔액: {monthly_plan.tactical_remaining:,}원",
+            ]
+        )
+        if monthly_plan.benchmark_summary:
+            lines.extend(["", "[벤치마크]", monthly_plan.benchmark_summary])
+    else:
+        tactical_decision = None
+    proposal_ratio = tactical_decision.ratio if tactical_decision else signal.buy_ratio
+    proposal_amount = tactical_decision.amount if tactical_decision else signal.tactical_amount
+    proposal_quantity = tactical_decision.quantity if tactical_decision else signal.expected_quantity
     lines.extend(
         [
             "",
             "[매수 제안]",
-            f"전술 자금 사용 비율: {signal.buy_ratio * 100:.0f}%",
-            f"추천 금액: {signal.tactical_amount:,}원",
-            f"예상 수량: {signal.expected_quantity:,}주",
+            f"전술 자금 사용 비율: {proposal_ratio * 100:.0f}%",
+            f"추천 금액: {proposal_amount:,}원",
+            f"예상 수량: {proposal_quantity:,}주",
         ]
     )
-    if proposal_id:
+    if tactical_decision and tactical_decision.reasons:
+        lines.extend(["", "[DCA 적용 사유]"])
+        lines.extend([f"- {reason}" for reason in tactical_decision.reasons])
+    if normalized_proposal_ids:
+        proposal_text = ", ".join(str(item) for item in normalized_proposal_ids)
         lines.extend(
             [
                 "",
-                f"승인 대기 번호: {proposal_id}",
-                f"승인: python -m app.main approve {proposal_id}",
-                f"거절: python -m app.main reject {proposal_id}",
+                f"승인 대기 번호: {proposal_text}",
+                "텔레그램의 승인 대기 메뉴에서 각 제안을 승인/거절하세요.",
             ]
         )
     else:
-        lines.extend(["", "오늘은 승인할 매수 제안이 없습니다."])
+        if proposal_amount > 0:
+            lines.extend(["", "매수 후보 금액은 있지만 최근 제안/승인 대기 또는 중복 방지 조건으로 새 승인번호는 생성되지 않았습니다."])
+        else:
+            lines.extend(["", "오늘은 승인할 매수 제안이 없습니다."])
     return "\n".join(lines)
 
 

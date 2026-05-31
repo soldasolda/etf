@@ -18,6 +18,10 @@ class DailyPrice:
 class Signal:
     score: int
     label: str
+    health_score: int
+    health_label: str
+    tactical_score: int
+    tactical_label: str
     buy_ratio: float
     tactical_amount: int
     expected_quantity: int
@@ -36,6 +40,8 @@ class Signal:
     five_day_return_pct: float
     reasons: list[str]
     score_details: list[str]
+    health_details: list[str]
+    tactical_details: list[str]
 
 
 @dataclass(frozen=True)
@@ -50,6 +56,16 @@ class Proposal:
     proposed_quantity: int
     score: int
     label: str
+    proposal_type: str
+    cycle_month: str | None
+
+
+@dataclass(frozen=True)
+class InvestmentSettings:
+    total_budget: int
+    base_budget: int
+    tactical_budget: int
+    dca_day: int
 
 
 @dataclass(frozen=True)
@@ -73,6 +89,8 @@ class SimulationPosition:
 class SimulationTrade:
     id: int
     proposal_id: int | None
+    proposal_type: str
+    cycle_month: str | None
     side: str
     symbol: str
     name: str

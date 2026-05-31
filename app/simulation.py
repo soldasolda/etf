@@ -21,6 +21,8 @@ def execute_simulated_buy(
         price=current_price,
         quantity=quantity,
         fee=fee,
+        proposal_type=proposal.proposal_type,
+        cycle_month=proposal.cycle_month,
     )
     return (
         "시뮬레이션 매수가 완료되었습니다.\n"

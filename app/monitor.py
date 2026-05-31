@@ -6,6 +6,7 @@ from pathlib import Path
 from app.brokers.base import BrokerClient
 from app.charting import create_price_chart
 from app.config import Settings
+from app.dca import create_base_dca_proposal_if_due, create_tactical_proposal, load_monthly_plan
 from app.models import Signal
 from app.storage import Storage
 from app.strategy import evaluate_signal
@@ -23,8 +24,9 @@ class MonitorResult:
 def check_market_once(storage: Storage, client: BrokerClient, settings: Settings) -> MonitorResult:
     prices = client.get_daily_prices(settings.etf_symbol)
     storage.upsert_prices(settings.etf_symbol, prices)
-    stored_prices = storage.get_prices(settings.etf_symbol, limit=120)
-    signal = evaluate_signal(stored_prices, settings.tactical_budget)
+    stored_prices = storage.get_prices(settings.etf_symbol, limit=220)
+    plan = load_monthly_plan(storage, settings.default_investment_settings, stored_prices[-1].close)
+    signal = evaluate_signal(stored_prices, plan.settings.tactical_budget)
     storage.save_signal(settings.etf_symbol, signal)
 
     chart_path = create_price_chart(
@@ -35,38 +37,36 @@ def check_market_once(storage: Storage, client: BrokerClient, settings: Settings
         settings.chart_dir,
     )
 
-    if signal.score < settings.monitor_min_score:
+    base_proposal_id = create_base_dca_proposal_if_due(
+        storage,
+        settings.etf_symbol,
+        settings.etf_name,
+        signal,
+        plan,
+        stored_prices,
+    )
+    if base_proposal_id is not None:
         return MonitorResult(
             signal=signal,
-            proposal_id=None,
+            proposal_id=base_proposal_id,
             chart_path=chart_path,
-            should_notify=False,
-            reason=f"점수 {signal.score}점이 알림 기준 {settings.monitor_min_score}점보다 낮습니다.",
+            should_notify=True,
+            reason="정기 적립일이 되어 기본 DCA 제안을 생성했습니다.",
         )
 
-    if signal.expected_quantity <= 0 or signal.tactical_amount <= 0:
-        return MonitorResult(
-            signal=signal,
-            proposal_id=None,
-            chart_path=chart_path,
-            should_notify=False,
-            reason="추천 수량 또는 금액이 0입니다.",
-        )
-
-    if storage.has_recent_active_proposal(settings.etf_symbol, settings.monitor_cooldown_minutes):
-        return MonitorResult(
-            signal=signal,
-            proposal_id=None,
-            chart_path=chart_path,
-            should_notify=False,
-            reason="최근 활성 제안이 있어 중복 알림을 건너뜁니다.",
-        )
-
-    proposal_id = storage.create_proposal(settings.etf_symbol, settings.etf_name, signal)
+    proposal_id, reason = create_tactical_proposal(
+        storage,
+        settings.etf_symbol,
+        settings.etf_name,
+        signal,
+        plan,
+        settings.monitor_min_score,
+        settings.monitor_cooldown_minutes,
+    )
     return MonitorResult(
         signal=signal,
         proposal_id=proposal_id,
         chart_path=chart_path,
         should_notify=proposal_id is not None,
-        reason="매수 제안 조건을 충족했습니다.",
+        reason=reason,
     )

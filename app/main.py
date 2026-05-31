@@ -42,7 +42,7 @@ def main() -> None:
 
     if args.command == "report":
         result = create_daily_report(storage, client, settings)
-        print(render_daily_report(settings, result.signal, result.proposal_id, result.recent_prices))
+        print(render_daily_report(settings, result.signal, result.proposal_ids, result.recent_prices, result.monthly_plan))
         if result.chart_path:
             print("")
             print(f"차트: {result.chart_path}")
@@ -59,7 +59,7 @@ def main() -> None:
         for proposal in proposals:
             print(
                 f"{proposal.id}. {proposal.name} {proposal.proposed_quantity:,}주 "
-                f"({proposal.proposed_amount:,}원), {proposal.label}, {proposal.score}점"
+                f"({proposal.proposed_amount:,}원), {proposal.label}, 전술 {proposal.score}점"
             )
         return
 

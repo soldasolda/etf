@@ -51,7 +51,10 @@ def create_price_chart(
     ax.plot(dates, avg_3w, color="#7c3aed", linewidth=1.0, linestyle=":", label="3W Avg")
     ax.scatter([dates[-1]], [closes[-1]], color="#dc2626", s=42, zorder=5, label="Current")
 
-    title = f"{name} ({symbol}) - 최근 3주 / {signal.label} / Score {signal.score}"
+    title = (
+        f"{name} ({symbol}) - 최근 3주 / "
+        f"건강 {signal.health_score} / 전술 {signal.tactical_score}"
+    )
     ax.set_title(title, fontsize=12, pad=12)
     ax.set_ylabel("Price")
     ax.grid(True, alpha=0.22)

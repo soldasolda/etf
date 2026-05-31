@@ -4,6 +4,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from app.models import InvestmentSettings
+
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT_DIR / "data"
@@ -64,6 +66,15 @@ class Settings:
     def uses_simulation_account(self) -> bool:
         return self.account_provider == "simulation"
 
+    @property
+    def default_investment_settings(self) -> InvestmentSettings:
+        return InvestmentSettings(
+            total_budget=self.base_budget + self.tactical_budget,
+            base_budget=self.base_budget,
+            tactical_budget=self.tactical_budget,
+            dca_day=self.cycle_day,
+        )
+
 
 def load_settings() -> Settings:
     _load_dotenv(ROOT_DIR / ".env")
@@ -86,10 +97,10 @@ def load_settings() -> Settings:
         base_budget=int(os.getenv("BASE_BUDGET", "1000000")),
         tactical_budget=int(os.getenv("TACTICAL_BUDGET", "500000")),
         simulation_initial_cash=int(os.getenv("SIMULATION_INITIAL_CASH", "5000000")),
-        cycle_day=int(os.getenv("CYCLE_DAY", "21")),
+        cycle_day=int(os.getenv("CYCLE_DAY", "22")),
         holiday_policy=os.getenv("HOLIDAY_POLICY", "next_business_day"),
         approval_max_price_drift_pct=float(os.getenv("APPROVAL_MAX_PRICE_DRIFT_PCT", "0.3")),
-        daily_max_order_amount=int(os.getenv("DAILY_MAX_ORDER_AMOUNT", "300000")),
+        daily_max_order_amount=int(os.getenv("DAILY_MAX_ORDER_AMOUNT", "1500000")),
         monitor_enabled=_bool_env("MONITOR_ENABLED", True),
         monitor_interval_seconds=int(os.getenv("MONITOR_INTERVAL_SECONDS", "900")),
         monitor_min_score=int(os.getenv("MONITOR_MIN_SCORE", "60")),
