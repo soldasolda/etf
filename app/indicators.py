@@ -29,3 +29,25 @@ def volume_change_ratio(prices: list[DailyPrice]) -> float:
     if baseline == 0:
         return 1.0
     return recent / baseline
+
+
+def rsi(prices: list[DailyPrice], window: int = 14) -> float:
+    if len(prices) <= window:
+        return 50.0
+    gains: list[float] = []
+    losses: list[float] = []
+    closes = [item.close for item in prices[-window - 1 :]]
+    for previous, current in zip(closes, closes[1:]):
+        change = current - previous
+        if change >= 0:
+            gains.append(float(change))
+            losses.append(0.0)
+        else:
+            gains.append(0.0)
+            losses.append(abs(float(change)))
+    avg_gain = mean(gains)
+    avg_loss = mean(losses)
+    if avg_loss == 0:
+        return 100.0
+    relative_strength = avg_gain / avg_loss
+    return 100 - (100 / (1 + relative_strength))

@@ -21,21 +21,25 @@ def render_daily_report(
         f"3주 평균: {signal.avg_3w:,.0f}원",
         f"최근 3주 위치: 하단 0 / 상단 100 기준 {signal.three_week_position_pct:.0f}",
         f"최근 3주 고점 대비: {signal.pullback_from_3w_high_pct:+.2f}%",
+        f"120거래일 위치: 하단 0 / 상단 100 기준 {signal.range_position_120d_pct:.0f}",
+        f"120거래일 고점 대비: {signal.pullback_from_120d_high_pct:+.2f}%",
+        f"RSI(14): {signal.rsi14:.0f}",
         f"20일선: {signal.ma20:,.0f}원",
         f"60일선: {signal.ma60:,.0f}원",
+        f"120일선: {signal.ma120:,.0f}원",
         f"최근 5거래일 수익률: {signal.five_day_return_pct:+.2f}%",
         f"점수: {signal.score}점",
         "",
-        "[점수 구성]",
+        "[점수 사유]",
     ]
     lines.extend([f"- {detail}" for detail in signal.score_details])
     lines.extend(
         [
             "",
-            "[점수 해석]",
+            "[점수 의미]",
             "- 점수는 매수 확률이 아니라 전술 자금을 써도 되는 정도입니다.",
-            "- 3개월 평균은 장기 가격 부담을 보고, 최근 3주는 오늘 진입 위치를 보완합니다.",
-            "- 과열 구간에서는 상승 추세여도 전술 자금 사용 비율을 낮춥니다.",
+            "- 상승 추세가 살아 있어도 RSI/최근 범위 상단이면 추격 매수를 줄입니다.",
+            "- 저가처럼 보여도 120일선 아래에서는 하락 추세 위험을 별도로 반영합니다.",
         ]
     )
     if recent_prices:
@@ -77,9 +81,9 @@ def render_recent_price_table(prices: list[DailyPrice]) -> list[str]:
             change = item.close - previous_close
             rate = (change / previous_close * 100) if previous_close else 0
             if change > 0:
-                marker = "[빨강]△"
+                marker = "△"
             elif change < 0:
-                marker = "[파랑]▽"
+                marker = "▽"
             else:
                 marker = "·"
             change_text = f"{marker}{change:+,}"

@@ -26,9 +26,13 @@ class Signal:
     avg_3w: float
     ma20: float
     ma60: float
+    ma120: float
     discount_pct: float
     three_week_position_pct: float
     pullback_from_3w_high_pct: float
+    range_position_120d_pct: float
+    pullback_from_120d_high_pct: float
+    rsi14: float
     five_day_return_pct: float
     reasons: list[str]
     score_details: list[str]

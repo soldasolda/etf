@@ -43,7 +43,8 @@ def create_price_chart(
     avg_3w = [signal.avg_3w for _ in closes]
 
     fig, ax = plt.subplots(figsize=(10, 5.5), dpi=140)
-    ax.plot(dates, closes, color="#1f2937", linewidth=1.8, label="Close")
+    plot_candles(ax, prices[-window:])
+    ax.plot(dates, closes, color="#111827", linewidth=1.0, alpha=0.55, label="Close")
     ax.plot(dates, ma20, color="#2563eb", linewidth=1.2, label="MA20")
     ax.plot(dates, ma60, color="#f97316", linewidth=1.2, label="MA60")
     ax.plot(dates, avg_3m, color="#16a34a", linewidth=1.0, linestyle="--", label="3M Avg")
@@ -77,6 +78,16 @@ def create_price_chart(
     fig.savefig(path, bbox_inches="tight")
     plt.close(fig)
     return path
+
+
+def plot_candles(ax, prices: list[DailyPrice]) -> None:
+    for item in prices:
+        up = item.close >= item.open
+        color = "#dc2626" if up else "#2563eb"
+        lower = min(item.open, item.close)
+        height = abs(item.close - item.open) or 1
+        ax.vlines(item.trade_date, item.low, item.high, color=color, linewidth=1.1, alpha=0.8)
+        ax.bar(item.trade_date, height, bottom=lower, width=0.58, color=color, edgecolor=color, alpha=0.28)
 
 
 def rolling_average(values: list[int], window: int) -> list[float | None]:

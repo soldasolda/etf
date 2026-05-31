@@ -44,9 +44,13 @@ class Storage:
                     avg_3w real not null default 0,
                     ma20 real not null,
                     ma60 real not null,
+                    ma120 real not null default 0,
                     discount_pct real not null,
                     three_week_position_pct real not null default 0,
                     pullback_from_3w_high_pct real not null default 0,
+                    range_position_120d_pct real not null default 0,
+                    pullback_from_120d_high_pct real not null default 0,
+                    rsi14 real not null default 50,
                     five_day_return_pct real not null,
                     reasons text not null,
                     score_details text not null default '',
@@ -105,8 +109,12 @@ class Storage:
                 """
             )
             self._ensure_column(conn, "signal_daily", "avg_3w", "real not null default 0")
+            self._ensure_column(conn, "signal_daily", "ma120", "real not null default 0")
             self._ensure_column(conn, "signal_daily", "three_week_position_pct", "real not null default 0")
             self._ensure_column(conn, "signal_daily", "pullback_from_3w_high_pct", "real not null default 0")
+            self._ensure_column(conn, "signal_daily", "range_position_120d_pct", "real not null default 0")
+            self._ensure_column(conn, "signal_daily", "pullback_from_120d_high_pct", "real not null default 0")
+            self._ensure_column(conn, "signal_daily", "rsi14", "real not null default 50")
             self._ensure_column(conn, "signal_daily", "score_details", "text not null default ''")
 
     def upsert_prices(self, symbol: str, prices: list[DailyPrice]) -> None:
@@ -168,10 +176,11 @@ class Storage:
                 """
                 insert into signal_daily
                     (symbol, signal_date, score, label, buy_ratio, current_price,
-                     avg_3m, avg_3w, ma20, ma60, discount_pct,
+                     avg_3m, avg_3w, ma20, ma60, ma120, discount_pct,
                      three_week_position_pct, pullback_from_3w_high_pct,
+                     range_position_120d_pct, pullback_from_120d_high_pct, rsi14,
                      five_day_return_pct, reasons, score_details, created_at)
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     symbol,
@@ -184,9 +193,13 @@ class Storage:
                     signal.avg_3w,
                     signal.ma20,
                     signal.ma60,
+                    signal.ma120,
                     signal.discount_pct,
                     signal.three_week_position_pct,
                     signal.pullback_from_3w_high_pct,
+                    signal.range_position_120d_pct,
+                    signal.pullback_from_120d_high_pct,
+                    signal.rsi14,
                     signal.five_day_return_pct,
                     "\n".join(signal.reasons),
                     "\n".join(signal.score_details),

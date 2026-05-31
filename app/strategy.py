@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.indicators import moving_average, return_pct, volume_change_ratio
+from app.indicators import moving_average, return_pct, rsi, volume_change_ratio
 from app.models import DailyPrice, Signal
 
 
@@ -13,12 +13,19 @@ def evaluate_signal(prices: list[DailyPrice], tactical_budget: int) -> Signal:
     avg_3w = moving_average(prices, 15)
     ma20 = moving_average(prices, 20)
     ma60 = moving_average(prices, 60)
+    ma120 = moving_average(prices, 120)
     discount_pct = (current / avg_3m - 1.0) * 100
     recent_3w = prices[-15:]
     low_3w = min(item.close for item in recent_3w)
     high_3w = max(item.close for item in recent_3w)
     three_week_position_pct = ((current - low_3w) / (high_3w - low_3w) * 100) if high_3w != low_3w else 50.0
     pullback_from_3w_high_pct = (current / high_3w - 1.0) * 100 if high_3w else 0.0
+    recent_120d = prices[-120:]
+    low_120d = min(item.close for item in recent_120d)
+    high_120d = max(item.close for item in recent_120d)
+    range_position_120d_pct = ((current - low_120d) / (high_120d - low_120d) * 100) if high_120d != low_120d else 50.0
+    pullback_from_120d_high_pct = (current / high_120d - 1.0) * 100 if high_120d else 0.0
+    rsi14 = rsi(prices, 14)
     five_day_return = return_pct(prices, 5)
     volume_ratio = volume_change_ratio(prices)
 
@@ -55,6 +62,15 @@ def evaluate_signal(prices: list[DailyPrice], tactical_budget: int) -> Signal:
         score_details.append("추세 +6: 20일선이 60일선 아래")
         reasons.append("20일선이 60일선 아래라 추세는 조심스럽습니다.")
 
+    if current > ma120 and ma20 > ma60:
+        score += 10
+        score_details.append("장기 추세 +10: 현재가가 120일선 위이고 중기 추세도 양호")
+        reasons.append("장기 추세가 살아 있어 눌림 매수 후보로 볼 수 있습니다.")
+    elif current < ma120 and ma20 <= ma60:
+        score -= 10
+        score_details.append("장기 추세 -10: 현재가가 120일선 아래이고 중기 추세도 약함")
+        reasons.append("가격이 싸 보여도 추세 훼손 위험이 있어 진입 강도를 낮춥니다.")
+
     if -6 <= five_day_return <= -2:
         score += 15
         score_details.append("단기 조정 +15: 최근 5거래일 -2%~-6%")
@@ -80,6 +96,28 @@ def evaluate_signal(prices: list[DailyPrice], tactical_budget: int) -> Signal:
         reasons.append("최근 거래량이 늘어 시장 관심이 높아졌습니다.")
     else:
         score_details.append("거래량 +0: 특이 변화 없음")
+
+    if 35 <= rsi14 <= 55 and ma20 > ma60 and pullback_from_3w_high_pct <= -1:
+        score += 10
+        score_details.append(f"RSI/눌림 +10: RSI {rsi14:.0f}, 상승 추세 속 단기 눌림")
+        reasons.append("RSI가 과열이 아니고 상승 추세 속 단기 눌림이 확인됩니다.")
+    elif rsi14 >= 70:
+        score -= 10
+        score_details.append(f"RSI 과열 -10: RSI {rsi14:.0f}")
+        reasons.append("RSI가 과열권이라 전술 자금 투입을 보수적으로 봅니다.")
+    elif rsi14 <= 30 and current > ma120:
+        score += 8
+        score_details.append(f"RSI 저점 +8: RSI {rsi14:.0f}, 장기 추세 위의 과매도")
+        reasons.append("장기 추세 위에서 RSI가 낮아 단기 과매도 후보입니다.")
+
+    if pullback_from_120d_high_pct <= -7 and current > ma120:
+        score += 12
+        score_details.append("중기 눌림 +12: 120거래일 고점 대비 -7% 이하, 120일선 위")
+        reasons.append("중기 고점 대비 충분한 눌림이지만 장기 추세는 유지됩니다.")
+    elif range_position_120d_pct >= 90 and discount_pct > 5:
+        score -= 8
+        score_details.append("중기 상단 -8: 120거래일 범위 상단")
+        reasons.append("최근 120거래일 범위 상단이라 가격 매력은 낮습니다.")
 
     if discount_pct > 5 and three_week_position_pct >= 80:
         score -= 8
@@ -110,9 +148,13 @@ def evaluate_signal(prices: list[DailyPrice], tactical_budget: int) -> Signal:
         avg_3w=avg_3w,
         ma20=ma20,
         ma60=ma60,
+        ma120=ma120,
         discount_pct=discount_pct,
         three_week_position_pct=three_week_position_pct,
         pullback_from_3w_high_pct=pullback_from_3w_high_pct,
+        range_position_120d_pct=range_position_120d_pct,
+        pullback_from_120d_high_pct=pullback_from_120d_high_pct,
+        rsi14=rsi14,
         five_day_return_pct=five_day_return,
         reasons=reasons,
         score_details=score_details,
