@@ -75,7 +75,13 @@ class TelegramClient:
         payload: dict[str, Any] = {"callback_query_id": callback_query_id}
         if text:
             payload["text"] = text
-        self._post("answerCallbackQuery", payload)
+        try:
+            self._post("answerCallbackQuery", payload)
+        except RuntimeError as exc:
+            message = str(exc).lower()
+            if "query is too old" in message or "query id is invalid" in message:
+                return
+            raise
 
     def send_photo(
         self,

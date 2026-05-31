@@ -38,7 +38,10 @@ class TelegramBot:
             updates = self.telegram.get_updates(self.offset)
             for update in updates:
                 self.offset = int(update["update_id"]) + 1
-                self.handle_update(update)
+                try:
+                    self.handle_update(update)
+                except Exception as exc:
+                    print(f"update handling failed: {exc}")
             self.maybe_run_monitor()
 
     def handle_update(self, update: dict[str, Any]) -> None:
