@@ -9,6 +9,7 @@
 ```env
 TELEGRAM_BOT_TOKEN=<your_telegram_bot_token>
 TELEGRAM_ALLOWED_CHAT_ID=<your_chat_id>
+TELEGRAM_AUTH_KEY=<your_telegram_auth_key>
 TOSS_APPKEY=<your_toss_app_key>
 TOSS_SECRETKEY=<your_toss_secret_key>
 ```

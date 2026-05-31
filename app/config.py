@@ -36,6 +36,7 @@ class Settings:
     mock: bool
     telegram_bot_token: str
     telegram_allowed_chat_id: int | None
+    telegram_auth_key: str
     etf_symbol: str
     etf_name: str
     base_budget: int
@@ -61,6 +62,7 @@ def load_settings() -> Settings:
         mock=_bool_env("TOSS_MOCK", True),
         telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
         telegram_allowed_chat_id=int(allowed_chat_id) if allowed_chat_id else None,
+        telegram_auth_key=os.getenv("TELEGRAM_AUTH_KEY", ""),
         etf_symbol=os.getenv("ETF_SYMBOL", "360750"),
         etf_name=os.getenv("ETF_NAME", "TIGER 미국S&P500"),
         base_budget=int(os.getenv("BASE_BUDGET", "1000000")),

@@ -45,14 +45,10 @@ class TelegramBot:
 
     def handle_message(self, message: dict[str, Any]) -> None:
         chat_id = int(message["chat"]["id"])
-        if not self.is_allowed(chat_id):
-            self.telegram.send_message(
-                chat_id,
-                "이 봇은 개인 투자 보조용입니다.\n"
-                f"현재 chat_id는 {chat_id}입니다. .env의 TELEGRAM_ALLOWED_CHAT_ID에 등록해 주세요.",
-            )
-            return
         text = str(message.get("text", "")).strip()
+        if not self.is_allowed(chat_id):
+            self.handle_auth_attempt(chat_id, text)
+            return
         if text in {"/start", "/menu", "menu", ""}:
             self.send_home(chat_id)
         elif text == "/report":
@@ -73,7 +69,7 @@ class TelegramBot:
         self.telegram.answer_callback_query(callback_id)
 
         if not self.is_allowed(chat_id):
-            self.telegram.send_message(chat_id, "허용되지 않은 chat_id입니다.")
+            self.telegram.send_message(chat_id, auth_prompt_text())
             return
         if data == "menu":
             self.telegram.edit_message_text(chat_id, message_id, home_text(self.settings), main_menu_keyboard())
@@ -139,7 +135,22 @@ class TelegramBot:
 
     def is_allowed(self, chat_id: int) -> bool:
         allowed = self.settings.telegram_allowed_chat_id
-        return allowed is None or chat_id == allowed
+        if allowed is not None and chat_id == allowed:
+            return True
+        return self.storage.is_telegram_chat_authorized(chat_id)
+
+    def handle_auth_attempt(self, chat_id: int, text: str) -> None:
+        if text in {"/start", "/menu", "menu", ""}:
+            self.telegram.send_message(chat_id, auth_prompt_text())
+            return
+        if not self.settings.telegram_auth_key:
+            self.telegram.send_message(chat_id, "인증키가 설정되지 않았습니다. .env의 TELEGRAM_AUTH_KEY를 확인해 주세요.")
+            return
+        if text == self.settings.telegram_auth_key:
+            self.storage.authorize_telegram_chat(chat_id)
+            self.telegram.send_message(chat_id, "인증되었습니다. 이제 버튼으로 운영할 수 있습니다.", main_menu_keyboard())
+            return
+        self.telegram.send_message(chat_id, "인증키가 맞지 않습니다. 다시 입력해 주세요.")
 
 
 def home_text(settings: Settings) -> str:
@@ -148,6 +159,14 @@ def home_text(settings: Settings) -> str:
         "버튼으로 일일 리포트와 승인 절차를 운영합니다.\n"
         f"현재 브로커는 {settings.broker}입니다.\n"
         "실제 주문은 아직 전송하지 않습니다."
+    )
+
+
+def auth_prompt_text() -> str:
+    return (
+        "[인증 필요]\n\n"
+        "이 봇은 개인용 ETF 투자 보조 도구입니다.\n"
+        "처음 사용하려면 인증키를 메시지로 보내주세요."
     )
 
 

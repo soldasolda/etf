@@ -104,9 +104,10 @@ py -3.9 -m app.main reject 1
 ```env
 TELEGRAM_BOT_TOKEN=<your_telegram_bot_token>
 TELEGRAM_ALLOWED_CHAT_ID=
+TELEGRAM_AUTH_KEY=<your_telegram_auth_key>
 ```
 
-처음에는 `TELEGRAM_ALLOWED_CHAT_ID`를 비워두고 봇을 실행한 뒤, 텔레그램에서 `/start`를 보내면 봇이 현재 `chat_id`를 알려줍니다. 그 값을 `.env`에 넣으면 해당 채팅방에서만 봇을 사용할 수 있습니다.
+처음에는 `TELEGRAM_ALLOWED_CHAT_ID`를 비워두고, `TELEGRAM_AUTH_KEY`만 설정해도 됩니다. 봇에게 `/start`를 보내면 인증키 입력을 요청하고, 올바른 인증키를 보낸 채팅방만 메뉴를 사용할 수 있습니다. 인증된 채팅방은 SQLite에 저장됩니다.
 
 ```powershell
 py -3.9 -m app.main telegram
@@ -130,6 +131,7 @@ py -3.9 -m app.main telegram
 BROKER=fdr
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_ALLOWED_CHAT_ID=
+TELEGRAM_AUTH_KEY=
 TOSS_APPKEY=
 TOSS_SECRETKEY=
 TOSS_MOCK=true

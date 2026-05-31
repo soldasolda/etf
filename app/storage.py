@@ -63,6 +63,11 @@ class Storage:
                     decided_at text,
                     decision_note text
                 );
+
+                create table if not exists telegram_authorized_chats (
+                    chat_id integer primary key,
+                    authorized_at text not null
+                );
                 """
             )
 
@@ -206,6 +211,26 @@ class Storage:
                 where id = ?
                 """,
                 (status, datetime.now().isoformat(timespec="seconds"), note, proposal_id),
+            )
+
+    def is_telegram_chat_authorized(self, chat_id: int) -> bool:
+        with self.connect() as conn:
+            row = conn.execute(
+                "select chat_id from telegram_authorized_chats where chat_id = ?",
+                (chat_id,),
+            ).fetchone()
+        return row is not None
+
+    def authorize_telegram_chat(self, chat_id: int) -> None:
+        with self.connect() as conn:
+            conn.execute(
+                """
+                insert into telegram_authorized_chats (chat_id, authorized_at)
+                values (?, ?)
+                on conflict(chat_id) do update set
+                    authorized_at=excluded.authorized_at
+                """,
+                (chat_id, datetime.now().isoformat(timespec="seconds")),
             )
 
 

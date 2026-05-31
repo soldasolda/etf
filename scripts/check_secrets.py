@@ -26,7 +26,7 @@ PATTERNS = {
     "github_pat": re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{20,}\b"),
     "private_key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----"),
     "nonempty_secret_assignment": re.compile(
-        r"(?m)^[ \t]*(?:TOSS_SECRETKEY|TOSS_APPKEY|TELEGRAM_BOT_TOKEN)[ \t]*=[ \t]*"
+        r"(?m)^[ \t]*(?:TOSS_SECRETKEY|TOSS_APPKEY|TELEGRAM_BOT_TOKEN|TELEGRAM_AUTH_KEY)[ \t]*=[ \t]*"
         r"(?!\s*(?:$|<|\.\.\.|your_|example|changeme))[^\s#]+"
     ),
 }
