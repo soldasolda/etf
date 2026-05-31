@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -55,6 +56,21 @@ class TelegramClient:
             payload["reply_markup"] = reply_markup
         self._post("editMessageText", payload)
 
+    def try_edit_message_text(
+        self,
+        chat_id: int,
+        message_id: int,
+        text: str,
+        reply_markup: dict[str, Any] | None = None,
+    ) -> bool:
+        try:
+            self.edit_message_text(chat_id, message_id, text, reply_markup)
+            return True
+        except RuntimeError as exc:
+            if "message is not modified" in str(exc).lower():
+                return True
+            return False
+
     def answer_callback_query(self, callback_query_id: str, text: str = "") -> None:
         payload: dict[str, Any] = {"callback_query_id": callback_query_id}
         if text:
@@ -83,8 +99,12 @@ class TelegramClient:
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(request, timeout=35) as response:
-            body = json.loads(response.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(request, timeout=35) as response:
+                body = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            error_body = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Telegram HTTP {exc.code} on {method}: {error_body}") from exc
         if not body.get("ok"):
             raise RuntimeError(f"Telegram API error on {method}: {body}")
         return body

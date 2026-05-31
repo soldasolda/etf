@@ -78,7 +78,7 @@ class TelegramBot:
             self.telegram.send_message(chat_id, auth_prompt_text())
             return
         if data == "menu":
-            self.telegram.edit_message_text(chat_id, message_id, home_text(self.settings), main_menu_keyboard())
+            self.safe_edit_or_send(chat_id, message_id, home_text(self.settings), main_menu_keyboard())
         elif data == "report":
             self.send_report(chat_id)
         elif data == "pending":
@@ -90,13 +90,17 @@ class TelegramBot:
         elif data.startswith("approve:"):
             proposal_id = int(data.split(":", 1)[1])
             result = approve_proposal(self.storage, self.broker, self.settings, proposal_id)
-            self.telegram.edit_message_text(chat_id, message_id, result, main_menu_keyboard())
+            self.safe_edit_or_send(chat_id, message_id, result, main_menu_keyboard())
         elif data.startswith("reject:"):
             proposal_id = int(data.split(":", 1)[1])
             result = reject_proposal(self.storage, proposal_id)
-            self.telegram.edit_message_text(chat_id, message_id, result, main_menu_keyboard())
+            self.safe_edit_or_send(chat_id, message_id, result, main_menu_keyboard())
         else:
             self.telegram.send_message(chat_id, "알 수 없는 버튼입니다.", main_menu_keyboard())
+
+    def safe_edit_or_send(self, chat_id: int, message_id: int, text: str, reply_markup: dict[str, Any]) -> None:
+        if not self.telegram.try_edit_message_text(chat_id, message_id, text, reply_markup):
+            self.telegram.send_message(chat_id, text, reply_markup)
 
     def send_home(self, chat_id: int) -> None:
         self.telegram.send_message(chat_id, home_text(self.settings), main_menu_keyboard())
